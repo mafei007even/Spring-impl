@@ -82,7 +82,6 @@ public class AnnotationAwareAspectJAutoProxyCreator implements BeanPostProcessor
         // 如果最终的 Advisor 列表不为空，再在开头位置添加一个 ExposeInvocationInterceptor
         // extendAdvisors(eligibleAdvisors);
         if (!eligibleAdvisors.isEmpty()) {
-            // TODO 排序 Advisors
             OrderComparator.sort(eligibleAdvisors);
         }
         return eligibleAdvisors;
