@@ -1,6 +1,5 @@
-package com.mafei.service;
+package com.mafei.test;
 
-import com.mafei.spring.anno.Component;
 import com.mafei.spring.interfaces.BeanPostProcessor;
 
 import java.lang.reflect.InvocationHandler;

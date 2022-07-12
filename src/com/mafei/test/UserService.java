@@ -1,12 +1,10 @@
-package com.mafei.service;
+package com.mafei.test;
 
 import com.mafei.spring.anno.Autowired;
 import com.mafei.spring.anno.Component;
 import com.mafei.spring.anno.Scope;
 import com.mafei.spring.interfaces.BeanNameAware;
 import com.mafei.spring.interfaces.InitializingBean;
-
-import java.io.IOException;
 
 /**
  * @author mafei007

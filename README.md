@@ -19,4 +19,4 @@ AOP 是此项目中主要的功能模块，在学习了 AOP 的整体流程后�
 AOP 功能的实现在 `com.mafei.spring.aop` 包下，通过 `com.mafei.spring.aop.AnnotationAwareAspectJAutoProxyCreator` Bean 后处理器对符合切点的目标对象进行代理增强。
 
 ## 功能测试
-在 `com.mafei.service` 包下
+在 `com.mafei.test` 包下

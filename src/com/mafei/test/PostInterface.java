@@ -1,4 +1,4 @@
-package com.mafei.service;
+package com.mafei.test;
 
 /**
  * @author mafei007

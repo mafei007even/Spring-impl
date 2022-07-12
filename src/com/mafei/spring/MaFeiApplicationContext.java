@@ -57,13 +57,13 @@ public class MaFeiApplicationContext {
         // 扫描 -> 得到一系列 BeanDefinition，放入 beanDefinitionMap
         if (configClass.isAnnotationPresent(ComponentScan.class)) {
             ComponentScan componentScanAnnotation = (ComponentScan) configClass.getAnnotation(ComponentScan.class);
-            // 扫描路径 com.mafei.service
+            // 扫描路径 com.mafei.test
             String path = componentScanAnnotation.value();
-            // 扫描路径 com/mafei/service
+            // 扫描路径 com/mafei/test
             path = path.replace(".", "/");
 
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-            // 取得绝对路径: /Users/mafei007/AppProjects/IdeaProjects/spring_study/out/production/simple_impl/com/mafei/service
+            // 取得绝对路径: /Users/mafei007/AppProjects/IdeaProjects/spring_study/out/production/simple_impl/com/mafei/test
             URL resource = classLoader.getResource(path);
             File file = new File(resource.getFile());
 
@@ -75,9 +75,9 @@ public class MaFeiApplicationContext {
 
                     if (fileName.endsWith(".class")) {
                         // 提取出 class 对象，需要类的全限定名
-                        // com/mafei/service/UserService
+                        // com/mafei/test/Usertest
                         String className = fileName.substring(fileName.indexOf("com"), fileName.indexOf(".class"));
-                        // com.mafei.service.UserService
+                        // com.mafei.test.Usertest
                         className = className.replace("/", ".");
                         System.out.println(className);
                         try {
