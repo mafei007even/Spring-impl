@@ -9,10 +9,13 @@ import com.mafei.spring.core.OrderComparator;
 import com.mafei.spring.core.Ordered;
 import com.mafei.spring.interfaces.ApplicationContextAware;
 import com.mafei.spring.interfaces.BeanPostProcessor;
+import com.mafei.spring.interfaces.SmartInstantiationAwareBeanPostProcessor;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * bean 后处理器，对符合条件的 bean 进行 aop 代理增强，创建代理对象
@@ -20,7 +23,7 @@ import java.util.List;
  * @author mafei007
  * @date 2022/7/7 20:23
  */
-public class AnnotationAwareAspectJAutoProxyCreator implements BeanPostProcessor, ApplicationContextAware {
+public class AnnotationAwareAspectJAutoProxyCreator implements SmartInstantiationAwareBeanPostProcessor, ApplicationContextAware {
 
     private MaFeiApplicationContext applicationContext;
 
@@ -28,15 +31,34 @@ public class AnnotationAwareAspectJAutoProxyCreator implements BeanPostProcessor
 
     private List<Advisor> cachedAdvisors;
 
+    /**
+     * 记录哪些 bean 尝试过提前创建代理，无论这个 bean 是否创建了代理增强，都记录下来，
+     * 等到初始化阶段进行创建代理时，检查缓存，避免重复创建代理。
+     * 存储的值就是 beanName
+     */
+    private final Set<Object> earlyProxyReferences = new HashSet<>();
+
+    @Override
+    public Object getEarlyBeanReference(Object bean, String beanName) throws RuntimeException {
+        this.earlyProxyReferences.add(beanName);
+        return wrapIfNecessary(bean, beanName);
+    }
+
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) {
-        return BeanPostProcessor.super.postProcessBeforeInitialization(bean, beanName);
+        return SmartInstantiationAwareBeanPostProcessor.super.postProcessBeforeInitialization(bean, beanName);
     }
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) {
         if (bean != null) {
-            return wrapIfNecessary(bean, beanName);
+            // earlyProxyReferences 中不包含当前 beanName，才创建代理
+            if (!this.earlyProxyReferences.contains(beanName)) {
+                return wrapIfNecessary(bean, beanName);
+            } else {
+                // earlyProxyReferences 中包含当前 beanName，不再重复进行代理创建，直接返回
+                this.earlyProxyReferences.remove(beanName);
+            }
         }
         return bean;
     }
