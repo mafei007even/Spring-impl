@@ -14,7 +14,7 @@ public class A implements MyInterface, InitializingBean {
     /**
      * 采用 jdk 动态代理，注入的类型需要是接口类型
      */
-    @Autowired
+    // @Autowired
     private MyInterface b;
 
     public A() {
@@ -32,4 +32,9 @@ public class A implements MyInterface, InitializingBean {
         System.out.println("A.foo");
     }
 
+    @Autowired
+    public void setB(MyInterface b) {
+        System.out.println("A 😋😋😋😋 依赖注入 setB(" + b.getClass().getName() + ")");
+        this.b = b;
+    }
 }

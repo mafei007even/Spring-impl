@@ -10,6 +10,8 @@ import com.mafei.spring.interfaces.*;
 import java.beans.Introspector;
 import java.io.File;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -265,9 +267,18 @@ public class MaFeiApplicationContext {
      * @param beanDefinition
      * @param bean
      */
-    private void populateBean(String beanName, BeanDefinition beanDefinition, Object bean) throws IllegalAccessException {
-        System.out.println("😋😋😋😋 依赖注入阶段：" + beanName + ", class = " + bean.getClass().getName());
+    private void populateBean(String beanName, BeanDefinition beanDefinition, Object bean) throws IllegalAccessException, InvocationTargetException {
         Class clazz = beanDefinition.getType();
+        // 解析方法上的 Autowired
+        for (Method method : clazz.getMethods()) {
+            if (method.isAnnotationPresent(Autowired.class)) {
+                // 编译时加上 -parameters 参数才能反射获取到参数名
+                // 或者编译时加上 -g 参数，使用 ASM 获取到参数名
+                String paramName = method.getParameters()[0].getName();
+                method.invoke(bean, getBean(paramName));
+            }
+        }
+        // 解析字段上的 Autowired
         for (Field field : clazz.getDeclaredFields()) {
             if (field.isAnnotationPresent(Autowired.class)) {
                 field.setAccessible(true);
