@@ -5,6 +5,7 @@ import com.mafei.spring.anno.Component;
 import com.mafei.spring.anno.Lazy;
 import com.mafei.spring.anno.Scope;
 import com.mafei.spring.interfaces.InitializingBean;
+import com.mafei.spring.interfaces.ObjectFactory;
 
 /**
  * @author mafei007
@@ -20,8 +21,12 @@ public class A implements MyInterface, InitializingBean {
     // @Autowired
     private MyInterface b;
 
-    public A(@Lazy MyInterface b) {
-        this.b = b;
+    private ObjectFactory<MyInterface> bObj;
+
+    // public A(@Lazy MyInterface b) {
+    public A(ObjectFactory<MyInterface> b) {
+        // this.b = b;
+        this.bObj = b;
         System.out.println("A 创建，构造注入的 b 为：" + b.getClass());
     }
 
@@ -33,8 +38,8 @@ public class A implements MyInterface, InitializingBean {
 
     @Override
     public void foo() {
-        System.out.println("【【【【【【【【【【【【【【【【【A.foo start】......." + this.b.getClass());
-        this.b.foo();
+        System.out.println("【【【【【【【【【【【【【【【【【A.foo start】......." + this.bObj.getClass());
+        this.bObj.getObject().foo();
         System.out.println("【【【【【【【【【【【【【【【【【A.foo end】");
     }
 

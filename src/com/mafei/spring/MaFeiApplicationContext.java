@@ -386,16 +386,25 @@ public class MaFeiApplicationContext {
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
             Object arg = null;
-            // 参数加了 @Lazy，生成代理
-            if (parameter.isAnnotationPresent(Lazy.class)) {
+            if (parameter.getType().equals(ObjectFactory.class)) { // ObjectFactory 参数
+                arg = buildLazyObjectFactory(parameter.getName());
+            } else if (parameter.isAnnotationPresent(Lazy.class)) { // 参数加了 @Lazy，生成代理
                 arg = buildLazyResolutionProxy(parameter.getName(), parameter.getType());
-            } else {
-                // 没加 @Lazy 的，直接从容器中拿
+            } else { // 不是 ObjectFactory 也没加 @Lazy 的，直接从容器中拿
                 arg = getBean(parameter.getName());
             }
             args[i] = arg;
         }
         return constructor.newInstance(args);
+    }
+
+    private Object buildLazyObjectFactory(String requestingBeanName) {
+        return new ObjectFactory<Object>() {
+            @Override
+            public Object getObject() throws RuntimeException {
+                return getBean(requestingBeanName);
+            }
+        };
     }
 
     private Object buildLazyResolutionProxy(String requestingBeanName, Class<?> clazz) {
