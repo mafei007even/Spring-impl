@@ -10,10 +10,7 @@ import java.beans.Introspector;
 import java.io.File;
 import java.lang.reflect.*;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
@@ -54,6 +51,17 @@ public class MaFeiApplicationContext {
      * 单例池： beanName -> beanObj
      */
     private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
+
+    /**
+     * Names of beans that are currently in creation.
+     */
+    private final Set<String> singletonsCurrentlyInCreation =
+            Collections.newSetFromMap(new ConcurrentHashMap<>(16));
+
+    /**
+     * Names of Prototype beans that are currently in creation.
+     */
+    private final ThreadLocal<Object> prototypesCurrentlyInCreation = new ThreadLocal<>();
 
     private final List<BeanPostProcessor> beanPostProcessorList = new ArrayList<>();
 
@@ -177,7 +185,7 @@ public class MaFeiApplicationContext {
      * @return
      */
     private Object createBean(String beanName, BeanDefinition beanDefinition) {
-        Class clazz = beanDefinition.getType();
+        beforeCreation(beanName, beanDefinition);
         try {
             // 创建对象
             Object bean = createBeanInstance(beanName, beanDefinition);
@@ -192,7 +200,6 @@ public class MaFeiApplicationContext {
                         for (BeanPostProcessor beanPostProcessor : MaFeiApplicationContext.this.beanPostProcessorList) {
                             if (beanPostProcessor instanceof SmartInstantiationAwareBeanPostProcessor) {
                                 exposedObject = ((SmartInstantiationAwareBeanPostProcessor) beanPostProcessor).getEarlyBeanReference(exposedObject, beanName);
-
                             }
                         }
                         return exposedObject;
@@ -217,7 +224,77 @@ public class MaFeiApplicationContext {
             return exposedObject;
         } catch (Throwable e) {
             throw new RuntimeException(e);
+        } finally {
+            afterCreation(beanName, beanDefinition);
         }
+    }
+
+    private void afterCreation(String beanName, BeanDefinition beanDefinition) {
+        if (beanDefinition.isSingleton()) {
+            afterSingletonCreation(beanName);
+        } else {
+            afterPrototypeCreation(beanName);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void afterPrototypeCreation(String beanName) {
+        Object curVal = this.prototypesCurrentlyInCreation.get();
+        if (curVal instanceof String) {
+            this.prototypesCurrentlyInCreation.remove();
+        } else if (curVal instanceof Set) {
+            Set<String> beanNameSet = (Set<String>) curVal;
+            beanNameSet.remove(beanName);
+            if (beanNameSet.isEmpty()) {
+                this.prototypesCurrentlyInCreation.remove();
+            }
+        }
+    }
+
+    private void afterSingletonCreation(String beanName) {
+        if (!this.singletonsCurrentlyInCreation.contains(beanName)) {
+            // 可能被别的线程修改了
+            throw new IllegalStateException("Singleton '" + beanName + "' isn't currently in creation");
+        }
+        this.singletonsCurrentlyInCreation.remove(beanName);
+    }
+
+    private void beforeCreation(String beanName, BeanDefinition beanDefinition) {
+        if (beanDefinition.isSingleton()) {
+            beforeSingletonCreation(beanName);
+        } else {
+            beforePrototypeCreation(beanName);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void beforePrototypeCreation(String beanName) {
+        Object curVal = this.prototypesCurrentlyInCreation.get();
+        if (curVal != null &&
+                (curVal.equals(beanName) || (curVal instanceof Set && ((Set<?>) curVal).contains(beanName)))) {
+            throw new IllegalStateException("Error creating prototype bean with name '" + beanName + "': "
+                    + "Requested bean is currently in creation: Is there an unresolvable circular reference?");
+        }
+        // 加入 ThreadLocal
+        if (curVal == null) {
+            this.prototypesCurrentlyInCreation.set(beanName);
+        } else if (curVal instanceof String) {
+            Set<String> beanNameSet = new HashSet<>();
+            beanNameSet.add((String) curVal);
+            beanNameSet.add(beanName);
+            this.prototypesCurrentlyInCreation.set(beanNameSet);
+        } else {
+            Set<String> beanNameSet = (Set<String>) curVal;
+            beanNameSet.add(beanName);
+        }
+    }
+
+    private void beforeSingletonCreation(String beanName) {
+        if (this.singletonsCurrentlyInCreation.contains(beanName)) {
+            throw new IllegalStateException("Error creating singleton bean with name '" + beanName + "': "
+                    + "Requested bean is currently in creation: Is there an unresolvable circular reference?");
+        }
+        this.singletonsCurrentlyInCreation.add(beanName);
     }
 
     /**

@@ -14,7 +14,9 @@ public class Test {
         a.foo();
         MyInterface b = applicationContext.getBean("b", MyInterface.class);
         b.foo();
-        a.foo();
+        System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+        MyInterface c = applicationContext.getBean("c", MyInterface.class);
+        c.foo();
     }
 
 }
