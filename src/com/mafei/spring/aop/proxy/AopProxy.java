@@ -1,4 +1,4 @@
-package com.mafei.spring.aop;
+package com.mafei.spring.aop.proxy;
 
 /**
  * @author mafei007

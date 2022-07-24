@@ -5,10 +5,10 @@ import com.mafei.spring.aop.advisor.Advice;
 import com.mafei.spring.aop.advisor.Advisor;
 import com.mafei.spring.aop.advisor.MethodMatcher;
 import com.mafei.spring.aop.advisor.Pointcut;
+import com.mafei.spring.aop.proxy.ProxyFactory;
+import com.mafei.spring.aop.proxy.SingletonTargetSource;
 import com.mafei.spring.core.OrderComparator;
-import com.mafei.spring.core.Ordered;
 import com.mafei.spring.interfaces.ApplicationContextAware;
-import com.mafei.spring.interfaces.BeanPostProcessor;
 import com.mafei.spring.interfaces.SmartInstantiationAwareBeanPostProcessor;
 
 import java.lang.reflect.Method;
@@ -70,8 +70,7 @@ public class AnnotationAwareAspectJAutoProxyCreator implements SmartInstantiatio
         }
         List<Advisor> advisorList = findEligibleAdvisors(bean.getClass(), beanName);
         if (!advisorList.isEmpty()) {
-            System.out.println("………………………………………………auto-proxy user class [" + bean.getClass().getName() + "],  beanName[" + beanName + "]");
-            Object proxy = createProxy(bean, beanName, advisorList);
+            Object proxy = createProxy(bean.getClass(), bean, beanName, advisorList);
             return proxy;
         }
         System.out.println("………………………………………………Did not to auto-proxy user class [" + bean.getClass().getName() + "],  beanName[" + beanName + "]");
@@ -90,10 +89,12 @@ public class AnnotationAwareAspectJAutoProxyCreator implements SmartInstantiatio
         return retVal;
     }
 
-    private Object createProxy(Object bean, String beanName, List<Advisor> advisorList) {
+    private Object createProxy(Class<?> targetClass, Object target, String beanName, List<Advisor> advisorList) {
         ProxyFactory proxyFactory = new ProxyFactory();
-        proxyFactory.setTarget(bean);
+        proxyFactory.setTargetSource(new SingletonTargetSource(target));
         proxyFactory.addAdvisors(advisorList);
+        proxyFactory.setInterfaces(targetClass.getInterfaces());
+
         System.out.println("给 " + beanName + " 创建代理，有 " + advisorList.size() + " 个切面。");
         return proxyFactory.getProxy();
     }

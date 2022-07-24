@@ -1,4 +1,4 @@
-package com.mafei.spring.aop;
+package com.mafei.spring.aop.proxy;
 
 import com.mafei.spring.aop.advisor.*;
 
@@ -16,13 +16,15 @@ import java.util.List;
 public class ProxyFactory {
 
     private List<Advisor> advisorList;
-    private Object target;
-    private Class<?> targetClass;
+    private TargetSource targetSource;
+    private List<Class<?>> interfaces;
     private boolean proxyTargetClass;
+    private static final Class<?>[] EMPTY_CLASS_ARRAY = {};
 
     public ProxyFactory() {
         this.proxyTargetClass = false;
         this.advisorList = new ArrayList<>();
+        this.interfaces = new ArrayList<>();
     }
 
     public void addAdvisors(List<Advisor> advisorList) {
@@ -31,9 +33,7 @@ public class ProxyFactory {
 
     public Object getProxy() {
         AopProxy aopProxy = createAopProxy();
-        Object proxy = aopProxy.getProxy();
-        // System.out.println("创建了代理：" + proxy);
-        return proxy;
+        return aopProxy.getProxy();
     }
 
     public AopProxy createAopProxy() {
@@ -41,7 +41,7 @@ public class ProxyFactory {
             return new ObjenesisCglibAopProxy(this);
         } else {
             // 有接口
-            if (getTargetClass().getInterfaces().length > 0) {
+            if (!this.interfaces.isEmpty()) {
                 return new JdkDynamicAopProxy(this);
             } else {
                 // 没接口
@@ -75,20 +75,40 @@ public class ProxyFactory {
     }
 
     public void setTarget(Object bean) {
-        this.target = bean;
-        this.targetClass = bean.getClass();
+        setTargetSource(new SingletonTargetSource(bean));
+    }
+
+    public void setTargetSource(TargetSource targetSource) {
+        this.targetSource = targetSource;
+    }
+
+    public TargetSource getTargetSource() {
+        return targetSource;
     }
 
     public boolean isProxyTargetClass() {
         return proxyTargetClass;
     }
 
-    public Class<?> getTargetClass() {
-        return targetClass;
+    public void addInterface(Class<?> intf) {
+        if (!intf.isInterface()) {
+            throw new IllegalArgumentException("[" + intf.getName() + "] is not an interface");
+        }
+        // 避免重复添加相同的接口
+        if (!this.interfaces.contains(intf)) {
+            this.interfaces.add(intf);
+        }
     }
 
-
-    public Object getTarget() {
-        return target;
+    public void setInterfaces(Class<?>... interfaces) {
+        this.interfaces.clear();
+        for (Class<?> intf : interfaces) {
+            addInterface(intf);
+        }
     }
+
+    public Class<?>[] getProxiedInterfaces() {
+        return this.interfaces.toArray(EMPTY_CLASS_ARRAY);
+    }
+
 }
