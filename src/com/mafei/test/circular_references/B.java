@@ -2,12 +2,15 @@ package com.mafei.test.circular_references;
 
 import com.mafei.spring.anno.Autowired;
 import com.mafei.spring.anno.Component;
+import com.mafei.spring.anno.Lazy;
+import com.mafei.spring.anno.Scope;
 import com.mafei.spring.interfaces.InitializingBean;
 
 /**
  * @author mafei007
  * @date 2022/7/23 16:29
  */
+// @Scope("prototype")
 @Component
 public class B implements MyInterface, InitializingBean {
 
@@ -17,8 +20,9 @@ public class B implements MyInterface, InitializingBean {
     // @Autowired
     private MyInterface a;
 
-    public B() {
-        System.out.println("B 创建");
+    public B(@Lazy MyInterface a) {
+        this.a = a;
+        System.out.println("B 创建，构造注入的 a 为：" + a.getClass());
     }
 
     @Override
@@ -32,7 +36,7 @@ public class B implements MyInterface, InitializingBean {
         System.out.println("B.foo");
     }
 
-    @Autowired
+    // @Autowired
     public void setA(MyInterface a) {
         System.out.println("B 😋😋😋😋 依赖注入 setA(" + a.getClass().getName() + ")");
         this.a = a;

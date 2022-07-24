@@ -1,17 +1,14 @@
 package com.mafei.spring;
 
-import com.mafei.spring.anno.Autowired;
-import com.mafei.spring.anno.Component;
-import com.mafei.spring.anno.ComponentScan;
-import com.mafei.spring.anno.Scope;
+import com.mafei.spring.anno.*;
 import com.mafei.spring.aop.AnnotationAwareAspectJAutoProxyCreator;
+import com.mafei.spring.aop.proxy.LazyInjectTargetSource;
+import com.mafei.spring.aop.proxy.ProxyFactory;
 import com.mafei.spring.interfaces.*;
 
 import java.beans.Introspector;
 import java.io.File;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -183,7 +180,7 @@ public class MaFeiApplicationContext {
         Class clazz = beanDefinition.getType();
         try {
             // 创建对象
-            Object bean = clazz.getConstructor().newInstance();
+            Object bean = createBeanInstance(beanName, beanDefinition);
 
             // 如果当前创建的是单例对象，依赖注入前将工厂对象 fa 存入三级缓存 singletonFactories 中
             if (beanDefinition.isSingleton()) {
@@ -361,6 +358,57 @@ public class MaFeiApplicationContext {
             ret.add(beanName);
         }
         return ret;*/
+    }
+
+    /**
+     * 创建 bean
+     * 编译时加上 -parameters 参数才能反射获取到参数名
+     * 或者编译时加上 -g 参数，使用 ASM 获取到参数名
+     *
+     * @param beanName
+     * @param beanDefinition
+     * @return
+     * @throws Throwable
+     */
+    private Object createBeanInstance(String beanName, BeanDefinition beanDefinition) throws Throwable {
+        Class<?> clazz = beanDefinition.getType();
+        // 优先使用无参构造
+        Constructor<?>[] constructors = clazz.getConstructors();
+        for (Constructor<?> constructor : constructors) {
+            if (constructor.getParameterCount() == 0) {
+                return constructor.newInstance();
+            }
+        }
+        // 没有无参构造，使用有参构造，随机选一个构造器
+        Constructor<?> constructor = constructors[0];
+        Object[] args = new Object[constructor.getParameterCount()];
+        Parameter[] parameters = constructor.getParameters();
+        for (int i = 0; i < parameters.length; i++) {
+            Parameter parameter = parameters[i];
+            Object arg = null;
+            // 参数加了 @Lazy，生成代理
+            if (parameter.isAnnotationPresent(Lazy.class)) {
+                arg = buildLazyResolutionProxy(parameter.getName(), parameter.getType());
+            } else {
+                // 没加 @Lazy 的，直接从容器中拿
+                arg = getBean(parameter.getName());
+            }
+            args[i] = arg;
+        }
+        return constructor.newInstance(args);
+    }
+
+    private Object buildLazyResolutionProxy(String requestingBeanName, Class<?> clazz) {
+        LazyInjectTargetSource targetSource = new LazyInjectTargetSource(this, requestingBeanName);
+        ProxyFactory proxyFactory = new ProxyFactory();
+        proxyFactory.setTargetSource(targetSource);
+        proxyFactory.setInterfaces(clazz.getInterfaces());
+        // 临时的解决方案，JDK 动态代理只能基于接口，要代理的 class 可能本身是个接口，添加进去
+        if (clazz.isInterface()) {
+            proxyFactory.addInterface(clazz);
+        }
+        System.out.println("🐷🐷🐷🐷 使用有参构造，为 " + requestingBeanName + " 参数创建代理对象");
+        return proxyFactory.getProxy();
     }
 
 }
