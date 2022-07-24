@@ -21,6 +21,11 @@ public class ProxyFactory {
     private boolean proxyTargetClass;
     private static final Class<?>[] EMPTY_CLASS_ARRAY = {};
 
+    /**
+     * 是否允许代理对象作为 ThreadLocal 通过 AopContext 访问
+     */
+    private boolean exposeProxy = true;
+
     public ProxyFactory() {
         this.proxyTargetClass = false;
         this.advisorList = new ArrayList<>();
@@ -111,4 +116,11 @@ public class ProxyFactory {
         return this.interfaces.toArray(EMPTY_CLASS_ARRAY);
     }
 
+    public boolean exposeProxy() {
+        return exposeProxy;
+    }
+
+    public void setExposeProxy(boolean exposeProxy) {
+        this.exposeProxy = exposeProxy;
+    }
 }
