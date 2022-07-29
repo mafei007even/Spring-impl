@@ -11,7 +11,7 @@ import com.mafei.spring.interfaces.InitializingBean;
  * @date 2022/7/25 03:07
  */
 @Scope("prototype")
-@Component
+// @Component
 public class C implements MyInterface, InitializingBean {
 
     /**

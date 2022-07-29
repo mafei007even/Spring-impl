@@ -53,6 +53,11 @@ public class MaFeiApplicationContext {
     private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
     /**
+     * Disposable bean instances: bean name to disposable instance.
+     */
+    private final Map<String, Object> disposableBeans = new LinkedHashMap<>();
+
+    /**
      * Names of beans that are currently in creation.
      */
     private final Set<String> singletonsCurrentlyInCreation =
@@ -221,11 +226,20 @@ public class MaFeiApplicationContext {
                 }
             }
 
+            // 注册 disposable bean，注意注册的是原始对象，而不是代理对象
+            registerDisposableBeanIfNecessary(beanName, bean, beanDefinition);
+
             return exposedObject;
         } catch (Throwable e) {
             throw new RuntimeException(e);
         } finally {
             afterCreation(beanName, beanDefinition);
+        }
+    }
+
+    private void registerDisposableBeanIfNecessary(String beanName, Object bean, BeanDefinition beanDefinition) {
+        if (beanDefinition.isSingleton() && DisposableBeanAdapter.hasDestroyMethod(bean, beanDefinition)) {
+            this.disposableBeans.put(beanName, new DisposableBeanAdapter(bean, beanName, beanDefinition));
         }
     }
 
@@ -495,6 +509,46 @@ public class MaFeiApplicationContext {
         }
         System.out.println("🐷🐷🐷🐷 使用有参构造，为 " + requestingBeanName + " 参数创建代理对象");
         return proxyFactory.getProxy();
+    }
+
+    public void close() {
+        destroySingletons();
+    }
+
+    private void destroySingletons() {
+        synchronized (this.disposableBeans) {
+            Set<Map.Entry<String, Object>> entrySet = this.disposableBeans.entrySet();
+            Iterator<Map.Entry<String, Object>> it = entrySet.iterator();
+            while (it.hasNext()) {
+                Map.Entry<String, Object> entry = it.next();
+                String beanName = entry.getKey();
+                DisposableBean bean = (DisposableBean) entry.getValue();
+                try {
+                    bean.destroy();
+                } catch (Exception e) {
+                    System.out.println("Destruction of bean with name '" + beanName + "' threw an exception：" + e);
+                }
+                it.remove();
+            }
+        }
+        // Clear all cached singleton instances in this registry.
+        this.singletonObjects.clear();
+        this.earlySingletonObjects.clear();
+        this.singletonFactories.clear();
+    }
+
+    /**
+     * 对外提供销毁 bean 的方法
+     * @param beanName
+     * @param bean
+     */
+    public void destroyBean(String beanName, Object bean) {
+        // beanDefinition 未处理
+        new DisposableBeanAdapter(bean, beanName, null).destroy();
+    }
+
+    public void destroyBean(Object bean) {
+        new DisposableBeanAdapter(bean, bean.getClass().getName(), null).destroy();
     }
 
 }

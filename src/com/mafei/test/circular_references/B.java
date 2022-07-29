@@ -12,7 +12,7 @@ import com.mafei.spring.interfaces.InitializingBean;
  */
 // @Scope("prototype")
 @Component
-public class B implements MyInterface, InitializingBean {
+public class B implements MyInterface, InitializingBean, AutoCloseable {
 
     /**
      * 采用 jdk 动态代理，注入的类型需要是接口类型
@@ -23,6 +23,10 @@ public class B implements MyInterface, InitializingBean {
     public B(@Lazy MyInterface a) {
         this.a = a;
         System.out.println("B 创建，构造注入的 a 为：" + a.getClass());
+    }
+
+    public B() {
+        System.out.println("B 创建");
     }
 
     @Override
@@ -36,9 +40,14 @@ public class B implements MyInterface, InitializingBean {
         System.out.println("B.foo");
     }
 
-    // @Autowired
+    @Autowired
     public void setA(MyInterface a) {
         System.out.println("B 😋😋😋😋 依赖注入 setA(" + a.getClass().getName() + ")");
         this.a = a;
+    }
+
+    @Override
+    public void close() throws Exception {
+        System.out.println("B destroy by AutoCloseable...");
     }
 }

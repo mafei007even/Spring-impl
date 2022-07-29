@@ -4,6 +4,7 @@ import com.mafei.spring.anno.Autowired;
 import com.mafei.spring.anno.Component;
 import com.mafei.spring.anno.Lazy;
 import com.mafei.spring.anno.Scope;
+import com.mafei.spring.interfaces.DisposableBean;
 import com.mafei.spring.interfaces.InitializingBean;
 import com.mafei.spring.interfaces.ObjectFactory;
 
@@ -13,7 +14,7 @@ import com.mafei.spring.interfaces.ObjectFactory;
  */
 // @Scope("prototype")
 @Component
-public class A implements MyInterface, InitializingBean {
+public class A implements MyInterface, InitializingBean, DisposableBean {
 
     /**
      * 采用 jdk 动态代理，注入的类型需要是接口类型
@@ -23,11 +24,16 @@ public class A implements MyInterface, InitializingBean {
 
     private ObjectFactory<MyInterface> bObj;
 
-    public A(@Lazy MyInterface b) {
-    // public A(ObjectFactory<MyInterface> b) {
-        this.b = b;
-        // this.bObj = b;
-        System.out.println("A 创建，构造注入的 b 为：" + b.getClass());
+    // public A(@Lazy MyInterface b) {
+    // // public A(ObjectFactory<MyInterface> b) {
+    //     this.b = b;
+    //     // this.bObj = b;
+    //     System.out.println("A 创建，构造注入的 b 为：" + b.getClass());
+    // }
+
+
+    public A() {
+        System.out.println("A 创建");
     }
 
     @Override
@@ -44,10 +50,14 @@ public class A implements MyInterface, InitializingBean {
         System.out.println("【【【【【【【【【【【【【【【【【A.foo end】");
     }
 
-    // @Autowired
+    @Autowired
     public void setB(MyInterface b) {
         System.out.println("A 😋😋😋😋 依赖注入 setB(" + b.getClass().getName() + ")");
         this.b = b;
     }
 
+    @Override
+    public void destroy() throws Exception {
+        System.out.println("A destroy...");
+    }
 }
