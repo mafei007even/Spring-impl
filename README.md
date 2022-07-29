@@ -13,11 +13,15 @@
 ### 循环依赖
 - 使用三级缓存解决「属性注入和 set 方法注入」的循环依赖问题，也解决了涉及注入代理对象的循环依赖问题。
 - 使用 @Lazy 注解、ObjectFactory 解决构造方法注入的循环依赖问题
-> 循环依赖的两个 bean 都是多例的 bean，无法解决。 
+> 两边相互依赖的 bean 必须至少其中一个是单例 bean，才能解决循环依赖问题。采用构造方法注入，单例、多例都行。
 > 
-> 必须至少其中一个是单例 bean，才能解决循环依赖问题
+> 做了循环引用检测，发现循环引用时抛出异常，而不是无限递归爆栈。
+> 
+> 抛出异常原因：
+> - 使用「属性注入或 set 方法注入」两边相互依赖的 bean 都是多例 bean
+> - 使用构造方法注入没加 @Lazy、ObjectFactory 推迟注入 bean
 
-### 简化的容器 refresh 流程：
+### 简化的容器 refresh 流程
 1. 收集 BeanDefinition，根据 @ComponentScan 的包路径扫描加了 @Component 注解的类，放入 beanDefinitionMap
 2. 向容器中注册基本的 Bean 后处理器（BeanPostProcessor）BeanDefinition，并创建 beanDefinitionMap 中所有的 Bean 后处理器，放入容器 singletonObjects 中，添加到 beanPostProcessorList
 3. 初始化所有单例 bean
@@ -33,10 +37,17 @@
 AOP 功能的实现在 `com.mafei.spring.aop` 包下，通过 `com.mafei.spring.aop.AnnotationAwareAspectJAutoProxyCreator` Bean 后处理器对符合切点的目标对象进行代理增强。
 如果发生了循环依赖要在依赖注入阶段提前创建代理，此 Bean 后处理器使用缓存避免了代理对象的重复创建。
 
-可以使用 AopContext 获取当前线程正在运行的 AOP 代理对象
+可以使用 AopContext 获取当前线程正在运行的 AOP 代理对象。
 
 参考 Spring 源码实现，大部分类名都和 Spring 中的类名一致。
 对 AOP 中的主要接口做了抽象，方便扩展。简单起见，和 Spring 的接口设计略有不同。
+
+## 使用到的设计模式
+- 代理（JDK 生成动态代理对象）
+- 责任链（通知的链式调用）
+- 单例（比较器）
+- 适配器（适配各种销毁方法的调用）
+- 工厂（ObjectFactory）
 
 ## 功能测试 Demo
 在 `com.mafei.test` 包下
