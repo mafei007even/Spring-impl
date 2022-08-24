@@ -13,6 +13,7 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 容器启动
@@ -437,7 +438,12 @@ public class MaFeiApplicationContext {
     }
 
     public List<Class<?>> getAllBeanClass() {
-        return beanDefinitionMap.values().stream().map((Function<BeanDefinition, Class<?>>) BeanDefinition::getType).toList();
+        // Stream#toList() 是 Java 16 的 API
+        // return beanDefinitionMap.values().stream().map((Function<BeanDefinition, Class<?>>) BeanDefinition::getType).toList();
+        return beanDefinitionMap.values()
+                .stream()
+                .map((Function<BeanDefinition, Class<?>>) BeanDefinition::getType)
+                .collect(Collectors.toList());
     }
 
     public ArrayList<String> getBeanNames() {
