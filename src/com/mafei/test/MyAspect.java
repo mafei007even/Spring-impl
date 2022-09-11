@@ -27,7 +27,7 @@ public class MyAspect {
             System.out.println("环绕通知 after returning ...");
             return retVal;
         } catch (Throwable e) {
-            System.out.println("环绕通知 after throwing...\uD83D\uDE21\uD83D\uDE21" + e);
+            System.out.println("环绕通知 after throwing...😡😡" + e);
             throw new RuntimeException(e);
         } finally {
             System.out.println("环绕通知 after ...");

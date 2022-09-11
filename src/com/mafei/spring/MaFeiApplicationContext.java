@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  */
 public class MaFeiApplicationContext {
 
-    private final Class configClass;
+    private final Class<?> configClass;
 
     /**
      * beanName -> BeanDefinition
@@ -71,10 +71,21 @@ public class MaFeiApplicationContext {
 
     private final List<BeanPostProcessor> beanPostProcessorList = new ArrayList<>();
 
-    public MaFeiApplicationContext(Class configClass) {
+    public MaFeiApplicationContext(Class<?> configClass) {
         this.configClass = configClass;
 
-        // 扫描 -> 得到一系列 BeanDefinition，放入 beanDefinitionMap
+        scanBeanDefinition(configClass);
+
+        registerBeanPostProcessors();
+
+        preInstantiateSingletons();
+    }
+
+    /**
+     * 扫描 -> 得到一系列 BeanDefinition，放入 beanDefinitionMap
+     * @param configClass
+     */
+    private void scanBeanDefinition(Class<?> configClass) {
         if (configClass.isAnnotationPresent(ComponentScan.class)) {
             ComponentScan componentScanAnnotation = (ComponentScan) configClass.getAnnotation(ComponentScan.class);
             // 扫描路径 com.mafei.test
@@ -98,7 +109,7 @@ public class MaFeiApplicationContext {
                         // com/mafei/test/Usertest
                         String className = fileName.substring(fileName.indexOf("com"), fileName.indexOf(".class"));
                         // com.mafei.test.Usertest
-                        className = className.replace("/", ".");
+                        className = className.replace(File.separator, ".");
                         System.out.println(className);
                         try {
                             Class<?> cls = classLoader.loadClass(className);
@@ -131,10 +142,6 @@ public class MaFeiApplicationContext {
             }
         }
         System.out.println("<<<<<<<<<<<<<<<<<<<<<<");
-
-        registerBeanPostProcessors();
-
-        preInstantiateSingletons();
     }
 
     /**
@@ -438,8 +445,6 @@ public class MaFeiApplicationContext {
     }
 
     public List<Class<?>> getAllBeanClass() {
-        // Stream#toList() 是 Java 16 的 API
-        // return beanDefinitionMap.values().stream().map((Function<BeanDefinition, Class<?>>) BeanDefinition::getType).toList();
         return beanDefinitionMap.values()
                 .stream()
                 .map((Function<BeanDefinition, Class<?>>) BeanDefinition::getType)
